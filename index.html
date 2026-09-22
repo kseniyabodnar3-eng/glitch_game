@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Glitch-Tape Rhythm Runner</title>
+    <title>Glitch-Tape Rhythm Runner (Rush E Edition)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -19,6 +19,7 @@
             background-color: #0d0e15;
             font-family: 'Courier New', Courier, monospace;
             color: #00f2fe;
+            transition: background-color 0.5s ease;
         }
         #game-container {
             position: relative;
@@ -27,8 +28,8 @@
             max-width: 600px;
             margin: 0 auto;
             background: radial-gradient(circle at center, #1b1c2b 0%, #0d0e15 100%);
-            border-left: 2px solid #ff007f;
-            border-right: 2px solid #00f2fe;
+            border-left: 2px solid var(--color-pink, #ff007f);
+            border-right: 2px solid var(--color-cyan, #00f2fe);
             box-shadow: 0 0 20px rgba(255, 0, 127, 0.3);
             display: flex;
             flex-direction: column;
@@ -44,13 +45,13 @@
             font-size: 1.5rem;
             text-transform: uppercase;
             letter-spacing: 2px;
-            text-shadow: 0 0 10px #00f2fe, 0 0 20px #ff007f;
+            text-shadow: 0 0 10px var(--color-cyan, #00f2fe), 0 0 20px var(--color-pink, #ff007f);
             color: #fff;
             margin-bottom: 5px;
         }
         .subtitle {
             font-size: 0.8rem;
-            color: #ff007f;
+            color: var(--color-pink, #ff007f);
             text-shadow: 0 0 5px rgba(255, 0, 127, 0.5);
         }
         #canvas-container {
@@ -73,22 +74,64 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(13, 14, 21, 0.85);
+            background: rgba(13, 14, 21, 0.92);
             z-index: 20;
             transition: opacity 0.3s ease;
             text-align: center;
-            padding: 20px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .track-selection {
+            width: 100%;
+            max-width: 320px;
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .track-btn {
+            background: rgba(27, 28, 43, 0.6);
+            border: 2px solid rgba(0, 242, 254, 0.4);
+            color: #a0a5c0;
+            padding: 10px 15px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .track-btn.active {
+            border-color: var(--color-cyan, #00f2fe);
+            color: #fff;
+            background: rgba(0, 242, 254, 0.15);
+            box-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+        .track-btn:hover {
+            background: rgba(0, 242, 254, 0.08);
+        }
+        .track-bpm {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            background: var(--color-pink, #ff007f);
+            color: #0d0e15;
+            padding: 2px 6px;
+            border-radius: 3px;
         }
         .btn {
             background: transparent;
-            border: 2px solid #00f2fe;
+            border: 2px solid var(--color-cyan, #00f2fe);
             color: #fff;
-            padding: 15px 30px;
+            padding: 15px 40px;
             font-size: 1.2rem;
             font-weight: bold;
             text-transform: uppercase;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 15px;
             box-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
             border-radius: 5px;
             font-family: inherit;
@@ -96,9 +139,9 @@
         }
         .btn:active {
             transform: scale(0.95);
-            background: #00f2fe;
+            background: var(--color-cyan, #00f2fe);
             color: #0d0e15;
-            box-shadow: 0 0 20px #00f2fe;
+            box-shadow: 0 0 20px var(--color-cyan, #00f2fe);
         }
         #score-board {
             position: absolute;
@@ -106,7 +149,7 @@
             left: 15px;
             font-size: 1.1rem;
             font-weight: bold;
-            text-shadow: 0 0 5px #00f2fe;
+            text-shadow: 0 0 5px var(--color-cyan, #00f2fe);
             z-index: 10;
             pointer-events: none;
         }
@@ -116,8 +159,8 @@
             right: 15px;
             font-size: 1.1rem;
             font-weight: bold;
-            color: #ff007f;
-            text-shadow: 0 0 5px #ff007f;
+            color: var(--color-pink, #ff007f);
+            text-shadow: 0 0 5px var(--color-pink, #ff007f);
             z-index: 10;
             pointer-events: none;
             display: none;
@@ -141,8 +184,8 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background-color: #ff007f;
-            box-shadow: 0 0 10px #ff007f;
+            background-color: var(--color-pink, #ff007f);
+            box-shadow: 0 0 10px var(--color-pink, #ff007f);
             transition: transform 0.05s ease-out;
         }
         .flash-cyan {
@@ -152,26 +195,26 @@
             animation: flash-p 0.1s ease-out;
         }
         @keyframes flash-c {
-            0% { border-color: #00f2fe; box-shadow: 0 0 15px #00f2fe; }
+            0% { border-color: var(--color-cyan, #00f2fe); box-shadow: 0 0 15px var(--color-cyan, #00f2fe); }
             100% { border-color: rgba(0, 242, 254, 0.3); }
         }
         @keyframes flash-p {
-            0% { background-color: #fff; box-shadow: 0 0 20px #ff007f; transform: scale(1.8); }
-            100% { background-color: #ff007f; box-shadow: 0 0 10px #ff007f; transform: scale(1); }
+            0% { background-color: #fff; box-shadow: 0 0 20px var(--color-pink, #ff007f); transform: scale(1.8); }
+            100% { background-color: var(--color-pink, #ff007f); box-shadow: 0 0 10px var(--color-pink, #ff007f); transform: scale(1); }
         }
         .instructions {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             line-height: 1.4;
             color: #a0a5c0;
-            margin-top: 15px;
-            max-width: 320px;
+            margin-top: 10px;
+            max-width: 340px;
         }
         .highlight {
-            color: #00f2fe;
+            color: var(--color-cyan, #00f2fe);
             font-weight: bold;
         }
         .pink-highlight {
-            color: #ff007f;
+            color: var(--color-pink, #ff007f);
             font-weight: bold;
         }
     </style>
@@ -191,11 +234,26 @@
         <canvas id="gameCanvas"></canvas>
 
         <div id="ui-overlay">
-            <h2 id="overlay-title" style="text-shadow: 0 0 10px #00f2fe;">ЗАПУСТИТЬ СИСТЕМУ</h2>
+            <h2 id="overlay-title" style="text-shadow: 0 0 10px #00f2fe;">ВЫБЕРИТЕ СИСТЕМНЫЙ ТРЕК</h2>
+            
+            <div class="track-selection">
+                <button class="track-btn active" onclick="selectTrack(0)">
+                    <span>🎹 RUSH E (Meme Legend)</span>
+                    <span class="track-bpm">160 BPM</span>
+                </button>
+                <button class="track-btn" onclick="selectTrack(1)">
+                    <span>⚡ NEON CYBERPUNK</span>
+                    <span class="track-bpm">130 BPM</span>
+                </button>
+                <button class="track-btn" onclick="trackPrePlay(2)">
+                    <span>👾 RETRO 8-BIT CHIP</span>
+                    <span class="track-bpm">110 BPM</span>
+                </button>
+            </div>
+
             <p class="instructions" id="overlay-desc">
-                Помоги <span class="highlight">Глич-Кассете</span> перепрыгивать через препятствия из битых пикселей. <br><br>
-                <span class="pink-highlight">ПРАВИЛО ФИДЖИТАЛА:</span><br>
-                Прыгай точно <span class="highlight">в такт биту</span> (когда пульсирует нижний индикатор), чтобы получать <span class="highlight">двойные очки</span>!
+                Легендарная <span class="highlight">RUSH E</span> заставит твою кассету лететь на пределе возможностей! <br>
+                Попадай в безумный клавишный ритм.
             </p>
             <button class="btn" id="start-btn">СТАРТ</button>
         </div>
@@ -219,7 +277,6 @@
     const rhythmIndicator = document.getElementById('rhythm-indicator');
     const rhythmCore = document.getElementById('rhythm-core');
 
-    // Настройка размеров экрана
     function resizeCanvas() {
         const container = document.getElementById('canvas-container');
         canvas.width = container.clientWidth;
@@ -228,11 +285,89 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Аудио Синтезатор (Web Audio API - полностью без внешних файлов!)
+    // Музыкальные ноты для RUSH E (знаменитое вступление и агрессивное пианино)
+    // Нота E (Ми) - основа всего трека, повторяется с нарастанием!
+    const note_E = 329.63; // E4
+    const note_B = 246.94; // B3
+    const note_C = 261.63; // C4
+    const note_D = 293.66; // D4
+    const note_A = 220.00; // A3
+
+    const rushESequence = [
+        note_E, note_E, note_E, note_E, // "E E E E"
+        note_B, note_C, note_D, note_E, // разгон
+        note_E, note_E, note_E, note_E,
+        note_D, note_C, note_B, note_A,
+        note_E, note_E, note_E, note_E,
+        note_C, note_D, note_E, note_A,
+        note_E, note_E, note_E, note_E
+    ];
+
+    const tracks = [
+        {
+            name: "RUSH E",
+            bpm: 160, // Ураганный темп!
+            color1: "#e60000", // Агрессивный огненно-красный (Клавиши рояля в огне!)
+            color2: "#ffffff", // Чистый белый
+            synthType: "square", // Классический острый звук синтезатора
+            notes: rushESequence,
+            speed: 8.5 // Реально быстрая игра!
+        },
+        {
+            name: "NEON CYBERPUNK",
+            bpm: 130,
+            color1: "#ff007f",
+            color2: "#00f2fe",
+            synthType: "sawtooth",
+            notes: [130.81, 146.83, 164.81, 196.00, 220.00],
+            speed: 6.5
+        },
+        {
+            name: "RETRO 8-BIT CHIP",
+            bpm: 110,
+            color1: "#e0a96d",
+            color2: "#a12559",
+            synthType: "triangle",
+            notes: [261.63, 293.66, 329.63, 392.00, 440.00],
+            speed: 5.2
+        }
+    ];
+
+    let currentTrackIndex = 0;
+    let currentTrack = tracks[0];
+
+    function selectTrack(index) {
+        currentTrackIndex = index;
+        currentTrack = tracks[index];
+
+        document.documentElement.style.setProperty('--color-pink', currentTrack.color1);
+        document.documentElement.style.setProperty('--color-cyan', currentTrack.color2);
+
+        const buttons = document.querySelectorAll('.track-btn');
+        buttons.forEach((btn, idx) => {
+            if (idx === index) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        overlayTitle.style.textShadow = `0 0 10px ${currentTrack.color2}, 0 0 20px ${currentTrack.color1}`;
+        
+        if (index === 0) {
+            overlayDesc.innerHTML = 'Легендарная <span class="highlight">RUSH E</span> заставит твою кассету лететь на пределе возможностей! <br>Попадай в безумный клавишный ритм.';
+        } else {
+            overlayDesc.innerHTML = 'Каждый трек меняет <span class="highlight">ритм, скорость игры и визуальный стиль</span> кассеты! <br>Прыгай точно <span class="pink-highlight">в такт индикатору</span>.';
+        }
+    }
+
+    // Для вызова функции из onclick в HTML
+    window.selectTrack = selectTrack;
+    window.trackPrePlay = selectTrack;
+
+    // Звуковой движок
     let audioCtx = null;
     let nextBeatTime = 0;
-    const bpm = 125;
-    const beatInterval = 60 / bpm; // время между битами в сек (примерно 0.48с)
     let audioLoopId = null;
 
     function initAudio() {
@@ -246,7 +381,6 @@
         scheduler();
     }
 
-    // Генерация звука бочки (Kick)
     function playKick(time) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -256,49 +390,72 @@
         osc.frequency.setValueAtTime(150, time);
         osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.12);
 
-        gain.gain.setValueAtTime(1.0, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+        // Для Rush E делаем плотный упругий бит
+        const vol = currentTrackIndex === 0 ? 0.9 : 0.7;
+        gain.gain.setValueAtTime(vol, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.14);
 
         osc.start(time);
-        osc.stop(time + 0.16);
+        osc.stop(time + 0.15);
     }
 
-    // Генерация ретро лид-ноты (8-bit Synth)
-    const notes = [130.81, 146.83, 164.81, 196.00, 220.00]; // C3, D3, E3, G3, A3
     let noteIndex = 0;
-
     function playSynth(time, step) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'triangle'; // Ретро треугольная волна
+        
+        osc.type = currentTrack.synthType;
         osc.connect(gain);
         gain.connect(audioCtx.destination);
 
-        // Простая мелодическая сетка
-        let freq = notes[noteIndex % notes.length];
-        if (step % 4 === 0) freq *= 1.5; // гармония на сильную долю
-        if (step % 8 === 0) noteIndex = Math.floor(Math.random() * notes.length);
+        let freq = currentTrack.notes[noteIndex % currentTrack.notes.length];
+        
+        // Специфический ураганный проигрыш для Rush E!
+        if (currentTrackIndex === 0) {
+            // Быстрые перебежки между нотами "E"
+            if (step % 2 === 0) {
+                freq = note_E;
+            } else {
+                freq = currentTrack.notes[Math.floor(Math.random() * currentTrack.notes.length)];
+            }
+            if (step % 16 >= 12) {
+                // Финал такта - высокая взрывная нота E!
+                freq *= 2; 
+            }
+            noteIndex++;
+        } else {
+            // Для остальных треков обычный алгоритм
+            if (step % 4 === 0) freq *= 1.5;
+            if (step % 6 === 0) noteIndex = Math.floor(Math.random() * currentTrack.notes.length);
+        }
 
         osc.frequency.setValueAtTime(freq, time);
         
-        gain.gain.setValueAtTime(0.15, time);
-        gain.gain.linearRampToValueAtTime(0.1, time + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+        const volume = currentTrackIndex === 0 ? 0.07 : (currentTrack.synthType === 'sawtooth' ? 0.08 : 0.14);
+        gain.gain.setValueAtTime(volume, time);
+        gain.gain.linearRampToValueAtTime(volume * 0.7, time + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
 
         osc.start(time);
-        osc.stop(time + 0.22);
+        osc.stop(time + 0.2);
     }
 
-    // Планировщик звуков
     let stepCount = 0;
     function scheduler() {
+        // Каждые 1/8 такта (в два раза быстрее бочки для Rush E, чтобы передать клавишный ураган!)
+        const beatInterval = (60 / currentTrack.bpm) / (currentTrackIndex === 0 ? 2 : 1);
+        
         while (nextBeatTime < audioCtx.currentTime + 0.1) {
-            playKick(nextBeatTime);
-            playSynth(nextBeatTime, stepCount);
+            // Бочка бьет только на каждый основной бит
+            if (currentTrackIndex !== 0 || stepCount % 2 === 0) {
+                playKick(nextBeatTime);
+                
+                const scheduleDelay = (nextBeatTime - audioCtx.currentTime) * 1000;
+                setTimeout(triggerBeatVisual, Math.max(0, scheduleDelay));
+            }
             
-            // Синхронизируем визуальный триггер бита
-            const scheduleDelay = (nextBeatTime - audioCtx.currentTime) * 1000;
-            setTimeout(triggerBeatVisual, Math.max(0, scheduleDelay));
+            // Синтезатор херачит в два раза быстрее!
+            playSynth(nextBeatTime, stepCount);
 
             nextBeatTime += beatInterval;
             stepCount++;
@@ -306,30 +463,27 @@
         audioLoopId = setTimeout(scheduler, 25);
     }
 
-    // Визуальная пульсация в такт музыки
     let lastBeatTimeLocal = 0;
     function triggerBeatVisual() {
         lastBeatTimeLocal = Date.now();
         rhythmIndicator.classList.remove('flash-cyan');
-        void rhythmIndicator.offsetWidth; // Магия триггера анимации
+        void rhythmIndicator.offsetWidth;
         rhythmIndicator.classList.add('flash-cyan');
 
         rhythmCore.classList.remove('flash-pink');
         void rhythmCore.offsetWidth;
         rhythmCore.classList.add('flash-pink');
 
-        // Эффект пульсации фона при бите
-        bgPulse = 0.15;
+        bgPulse = currentTrackIndex === 0 ? 0.25 : 0.15; // Сильные огненные вспышки для Rush E!
     }
 
-    // СОСТОЯНИЕ ИГРЫ
+    // Игровой цикл и механики
     let gameActive = false;
     let score = 0;
     let combo = 1;
     let bgPulse = 0;
     const gravity = 0.6;
 
-    // Игрок (Глич-Кассета)
     const player = {
         x: 80,
         y: 0,
@@ -339,16 +493,12 @@
         isJumping: false,
         angle: 0,
         targetAngle: 0,
-        reelAngle: 0,
-        glitchOffset: 0
+        reelAngle: 0
     };
 
-    // Препятствия (Битые пиксели)
     let obstacles = [];
     let obstacleTimer = 0;
-    let obstacleSpeed = 6;
-
-    // Эффекты частиц (для глитча и попадания в бит)
+    let baseSpeed = 5;
     let particles = [];
 
     function spawnParticle(x, y, color, count = 5) {
@@ -366,7 +516,6 @@
         }
     }
 
-    // Сброс параметров
     function resetGame() {
         score = 0;
         combo = 1;
@@ -380,71 +529,60 @@
         player.isJumping = false;
         player.angle = 0;
         player.targetAngle = 0;
-        obstacleSpeed = 6;
+        baseSpeed = currentTrack.speed;
         obstacleTimer = 0;
     }
 
-    // Прыжок
     function jump() {
         if (!gameActive) return;
 
         if (!player.isJumping) {
             player.vy = -12;
             player.isJumping = true;
-            player.targetAngle = Math.PI * 2; // Крутой кувырок в воздухе!
+            player.targetAngle = Math.PI * 2;
 
-            // Проверка попадания в бит (Ритм-физика!)
             const now = Date.now();
             const msSinceLastBeat = now - lastBeatTimeLocal;
-            const msToNextBeat = (beatInterval * 1000) - msSinceLastBeat;
-            const tolerance = 110; // Допустимая погрешность в мс для "Perfect Hit"
+            const beatIntervalMs = (60 / currentTrack.bpm) * 1000;
+            const msToNextBeat = beatIntervalMs - msSinceLastBeat;
+            const tolerance = 110; 
 
             if (msSinceLastBeat <= tolerance || msToNextBeat <= tolerance) {
-                // Попал в бит!
                 combo++;
                 score += 10 * combo;
                 comboBoard.style.display = 'block';
                 comboVal.textContent = combo;
                 
-                // Эффектные искры
-                spawnParticle(player.x + player.width/2, player.y + player.height/2, '#00f2fe', 15);
-                showTextFeedback("ИДЕАЛЬНО В БИТ!", '#00f2fe');
+                spawnParticle(player.x + player.width/2, player.y + player.height/2, currentTrack.color2, 15);
+                showTextFeedback("КРАСАВА В БИТ!", currentTrack.color2);
             } else {
-                // Не попал в бит
                 combo = 1;
                 comboBoard.style.display = 'none';
                 score += 5;
-                spawnParticle(player.x + player.width/2, player.y + player.height/2, '#ff007f', 5);
-                showTextFeedback("НЕ В ТАКТ", '#ff007f');
+                spawnParticle(player.x + player.width/2, player.y + player.height/2, currentTrack.color1, 5);
+                showTextFeedback("НЕ В ТАКТ", currentTrack.color1);
             }
             
             scoreVal.textContent = score;
         }
     }
 
-    // Текстовый фидбек на экране
     let feedbackText = "";
     let feedbackColor = "#fff";
     let feedbackTimer = 0;
     function showTextFeedback(text, color) {
         feedbackText = text;
         feedbackColor = color;
-        feedbackTimer = 30; // кадры
+        feedbackTimer = 30;
     }
 
-    // ОБРАБОТЧИКИ КЛИКОВ
     function triggerJumpInput(e) {
         e.preventDefault();
-        if (gameActive) {
-            jump();
-        }
+        if (gameActive) jump();
     }
-
-    // Клик на весь холст
     canvas.addEventListener('touchstart', triggerJumpInput, {passive: false});
     canvas.addEventListener('mousedown', triggerJumpInput);
 
-    // Клавиша Пробел
     window.addEventListener('keydown', (e) => {
         if (e.code === 'Space') {
             e.preventDefault();
@@ -463,12 +601,10 @@
         gameActive = true;
     });
 
-    // Отрисовка Глич-Кассеты
     function drawPlayer() {
         ctx.save();
         ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
         
-        // Вращение при прыжке
         if (player.angle < player.targetAngle) {
             player.angle += 0.2;
             if (player.angle >= player.targetAngle) {
@@ -478,85 +614,60 @@
         }
         ctx.rotate(player.angle);
 
-        // Эффект случайного смещения (глитча)
-        let xOff = 0;
-        let yOff = 0;
+        let xOff = 0, yOff = 0;
         if (Math.random() < 0.08) {
-            xOff = (Math.random() - 0.5) * 6;
-            yOff = (Math.random() - 0.5) * 4;
+            xOff = (Math.random() - 0.5) * 5;
+            yOff = (Math.random() - 0.5) * 3;
         }
 
-        // Корпус кассеты
+        // Рисуем кассету
         ctx.shadowBlur = 10;
-        ctx.shadowColor = "#ff007f";
+        ctx.shadowColor = currentTrack.color1;
         ctx.fillStyle = "#0d0e15";
-        ctx.strokeStyle = "#ff007f";
+        ctx.strokeStyle = currentTrack.color1;
         ctx.lineWidth = 3;
         
-        // Рисуем скругленный прямоугольник кассеты
         ctx.beginPath();
         ctx.roundRect(-player.width/2 + xOff, -player.height/2 + yOff, player.width, player.height, 5);
         ctx.fill();
         ctx.stroke();
 
-        // Внутренний стикер (фиолетовый неон)
         ctx.fillStyle = "#1b1c2b";
-        ctx.strokeStyle = "#00f2fe";
-        ctx.shadowColor = "#00f2fe";
+        ctx.strokeStyle = currentTrack.color2;
+        ctx.shadowColor = currentTrack.color2;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.roundRect(-player.width/2 + 8 + xOff, -player.height/2 + 6 + yOff, player.width - 16, player.height - 18, 3);
         ctx.fill();
         ctx.stroke();
 
-        // Катушки пленки (крутятся со временем!)
-        player.reelAngle += 0.05;
+        // Катушки
+        player.reelAngle += 0.06; // катушки крутятся быстрее в Rush E!
         const rSize = 10;
         
-        // Левая катушка
-        ctx.save();
-        ctx.translate(-12 + xOff, 2 + yOff);
-        ctx.rotate(player.reelAngle);
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.arc(0, 0, rSize, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#0d0e15";
-        ctx.beginPath();
-        ctx.arc(0, 0, rSize - 4, 0, Math.PI * 2);
-        ctx.fill();
-        // Зубчики катушки
-        ctx.fillStyle = "#ff007f";
-        for (let i = 0; i < 6; i++) {
-            ctx.rotate(Math.PI / 3);
-            ctx.fillRect(-2, -rSize, 4, 3);
-        }
-        ctx.restore();
+        [-12, 12].forEach(posX => {
+            ctx.save();
+            ctx.translate(posX + xOff, 2 + yOff);
+            ctx.rotate(player.reelAngle);
+            ctx.fillStyle = "#fff";
+            ctx.beginPath();
+            ctx.arc(0, 0, rSize, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#0d0e15";
+            ctx.beginPath();
+            ctx.arc(0, 0, rSize - 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = currentTrack.color1;
+            for (let i = 0; i < 6; i++) {
+                ctx.rotate(Math.PI / 3);
+                ctx.fillRect(-2, -rSize, 4, 3);
+            }
+            ctx.restore();
+        });
 
-        // Правая катушка
-        ctx.save();
-        ctx.translate(12 + xOff, 2 + yOff);
-        ctx.rotate(player.reelAngle);
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.arc(0, 0, rSize, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#0d0e15";
-        ctx.beginPath();
-        ctx.arc(0, 0, rSize - 4, 0, Math.PI * 2);
-        ctx.fill();
-        // Зубчики
-        ctx.fillStyle = "#ff007f";
-        for (let i = 0; i < 6; i++) {
-            ctx.rotate(Math.PI / 3);
-            ctx.fillRect(-2, -rSize, 4, 3);
-        }
-        ctx.restore();
-
-        // Розовый хвостик вырванной пленки внизу (неоновый шлейф)
         ctx.shadowBlur = 15;
-        ctx.shadowColor = "#ff007f";
-        ctx.strokeStyle = "#ff007f";
+        ctx.shadowColor = currentTrack.color1;
+        ctx.strokeStyle = currentTrack.color1;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(-15, player.height/2 - 4);
@@ -566,24 +677,21 @@
         ctx.restore();
     }
 
-    // Игровой цикл
     function update() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Рисуем неоновую сетку на заднем плане (Движение)
-        ctx.strokeStyle = "rgba(0, 242, 254, 0.08)";
+        // Фоновая сетка
+        ctx.strokeStyle = currentTrackIndex === 0 ? "rgba(255, 0, 0, 0.08)" : "rgba(0, 242, 254, 0.05)";
         ctx.lineWidth = 1;
         const gridGap = 40;
-        const speedOffset = (Date.now() / 20) % gridGap;
+        const speedOffset = (Date.now() / 15) % gridGap; // сетка летит быстрее
         
-        // Горизонтальные линии
         for (let y = 0; y < canvas.height; y += gridGap) {
             ctx.beginPath();
             ctx.moveTo(0, y + (speedOffset * 0.3));
             ctx.lineTo(canvas.width, y + (speedOffset * 0.3));
             ctx.stroke();
         }
-        // Вертикальные линии
         for (let x = 0; x < canvas.width; x += gridGap) {
             ctx.beginPath();
             ctx.moveTo(x - (speedOffset * 0.5), 0);
@@ -591,40 +699,40 @@
             ctx.stroke();
         }
 
-        // Рисуем пол (Линия горизонта)
+        // Пол
         const groundY = canvas.height - 80;
-        ctx.strokeStyle = "#00f2fe";
+        ctx.strokeStyle = currentTrack.color2;
         ctx.shadowBlur = 10;
-        ctx.shadowColor = "#00f2fe";
+        ctx.shadowColor = currentTrack.color2;
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.moveTo(0, groundY);
         ctx.lineTo(canvas.width, groundY);
         ctx.stroke();
 
-        // Фоновый импульс от бита
+        // Фоновый импульс в цвет песни
         if (bgPulse > 0) {
-            ctx.fillStyle = `rgba(255, 0, 127, ${bgPulse})`;
+            ctx.fillStyle = `rgba(${hexToRgb(currentTrack.color1)}, ${bgPulse})`;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            bgPulse -= 0.01;
+            bgPulse -= 0.015;
         }
 
         if (gameActive) {
-            // ФИЗИКА ИГРОКА
             player.vy += gravity;
             player.y += player.vy;
 
-            // Касание земли
             if (player.y >= groundY - player.height) {
                 player.y = groundY - player.height;
                 player.vy = 0;
                 player.isJumping = false;
             }
 
-            // ГЕНЕРАЦИЯ ПРЕПЯТСТВИЙ (по времени, коррелирует с тактом)
+            // Частота появления препятствий для Rush E
             obstacleTimer++;
-            // Спавним препятствие примерно каждые 2 или 3 секунды
-            const spawnRate = Math.floor(beatInterval * 60 * 2.5); // привязано к BPM
+            const beatIntervalSec = 60 / currentTrack.bpm;
+            // Для Rush E спавним препятствия чаще и динамичнее
+            const spawnDivisor = currentTrackIndex === 0 ? 1.8 : 2.3;
+            const spawnRate = Math.floor(beatIntervalSec * 60 * spawnDivisor); 
             if (obstacleTimer >= spawnRate) {
                 obstacleTimer = 0;
                 obstacles.push({
@@ -636,51 +744,45 @@
                 });
             }
 
-            // ДВИЖЕНИЕ ПРЕПЯТСТВИЙ
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const obs = obstacles[i];
-                obs.x -= obstacleSpeed;
+                obs.x -= baseSpeed;
 
-                // Отрисовка "Битого Пикселя"
                 ctx.save();
                 ctx.shadowBlur = 12;
-                ctx.shadowColor = "#ff007f";
-                ctx.fillStyle = "#ff007f";
+                ctx.shadowColor = currentTrack.color1;
+                ctx.fillStyle = currentTrack.color1;
                 
                 if (obs.glitched && Math.random() < 0.3) {
-                    // Эффект визуального распада препятствия
-                    ctx.fillStyle = "#00f2fe";
-                    ctx.shadowColor = "#00f2fe";
+                    ctx.fillStyle = currentTrack.color2;
+                    ctx.shadowColor = currentTrack.color2;
                     ctx.fillRect(obs.x + (Math.random()-0.5)*10, obs.y, obs.width, obs.height);
                 } else {
                     ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-                    // Пиксельная текстура внутри препятствия
                     ctx.fillStyle = "#fff";
                     ctx.fillRect(obs.x + 4, obs.y + 4, 6, 6);
                 }
                 ctx.restore();
 
-                // КОЛЛИЗИИ (Столкновения)
+                // Столкновение
                 if (
                     player.x < obs.x + obs.width &&
                     player.x + player.width > obs.x &&
                     player.y < obs.y + obs.height &&
                     player.y + player.height > obs.y
                 ) {
-                    // Столкновение! Конец игры
                     gameOver();
                 }
 
-                // Удаление прошедших препятствий
                 if (obs.x + obs.width < 0) {
                     obstacles.splice(i, 1);
                 }
             }
 
-            // Увеличение сложности со временем
-            obstacleSpeed += 0.0005;
+            // Ускорение игры
+            baseSpeed += currentTrackIndex === 0 ? 0.001 : 0.0006;
 
-            // ОБНОВЛЕНИЕ ЧАСТИЦ
+            // Обновление частиц
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.x += p.vx;
@@ -701,10 +803,8 @@
             }
         }
 
-        // Отрисовка игрока
         drawPlayer();
 
-        // Отрисовка текстового фидбека в такт
         if (feedbackTimer > 0) {
             ctx.save();
             ctx.font = "italic bold 18px 'Courier New'";
@@ -722,30 +822,33 @@
 
     function gameOver() {
         gameActive = false;
-        
-        // Остановка аудио планировщика
         if (audioLoopId) clearTimeout(audioLoopId);
         
-        // Эпичный взрыв кассеты!
-        spawnParticle(player.x + player.width/2, player.y + player.height/2, '#ff007f', 40);
-        spawnParticle(player.x + player.width/2, player.y + player.height/2, '#00f2fe', 40);
+        spawnParticle(player.x + player.width/2, player.y + player.height/2, currentTrack.color1, 40);
+        spawnParticle(player.x + player.width/2, player.y + player.height/2, currentTrack.color2, 40);
 
-        // Показ экрана поражения
         setTimeout(() => {
             overlayTitle.textContent = "СИСТЕМА СБОИЛА";
-            overlayTitle.style.textShadow = "0 0 10px #ff007f";
+            overlayTitle.style.textShadow = `0 0 10px ${currentTrack.color1}`;
             overlayDesc.innerHTML = `
-                Глич-Кассета натолкнулась на битый пиксель.<br><br>
-                Твой итоговый фиджитал-счет: <span class="highlight">${score}</span> очков!<br>
-                Уровень ритм-синхронизации: <span class="highlight">${Math.min(100, combo * 10)}%</span>
+                Ритм сломан под <span class="highlight">${currentTrack.name}</span>.<br><br>
+                Твой итоговый счет: <span class="highlight">${score}</span> очков!<br>
+                Синхронизация с битом: <span class="highlight">${Math.min(100, combo * 10)}%</span>
             `;
-            startBtn.textContent = "ПЕРЕЗАГРУЗКА";
+            startBtn.textContent = "СБРОСИТЬ";
             uiOverlay.style.pointerEvents = 'auto';
             uiOverlay.style.opacity = '1';
         }, 1000);
     }
 
-    // Запуск цикла анимации
+    function hexToRgb(hex) {
+        const bigint = parseInt(hex.replace('#', ''), 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `${r}, ${g}, ${b}`;
+    }
+
     update();
 </script>
 
