@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Glitch-Tape Rhythm Runner</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0d0e15;
+            font-family: 'Courier New', Courier, monospace;
+            color: #00f2fe;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background: radial-gradient(circle at center, #1b1c2b 0%, #0d0e15 100%);
+            border-left: 2px solid #ff007f;
+            border-right: 2px solid #00f2fe;
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        header {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px dashed rgba(0, 242, 254, 0.3);
+            z-index: 10;
+        }
+        h1 {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #00f2fe, 0 0 20px #ff007f;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            font-size: 0.8rem;
+            color: #ff007f;
+            text-shadow: 0 0 5px rgba(255, 0, 127, 0.5);
+        }
+        #canvas-container {
+            position: relative;
+            flex-grow: 1;
+            width: 100%;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(13, 14, 21, 0.85);
+            z-index: 20;
+            transition: opacity 0.3s ease;
+            text-align: center;
+            padding: 20px;
+        }
+        .btn {
+            background: transparent;
+            border: 2px solid #00f2fe;
+            color: #fff;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+            border-radius: 5px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        .btn:active {
+            transform: scale(0.95);
+            background: #00f2fe;
+            color: #0d0e15;
+            box-shadow: 0 0 20px #00f2fe;
+        }
+        #score-board {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00f2fe;
+            z-index: 10;
+            pointer-events: none;
+        }
+        #combo-board {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ff007f;
+            text-shadow: 0 0 5px #ff007f;
+            z-index: 10;
+            pointer-events: none;
+            display: none;
+        }
+        #rhythm-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 4px solid rgba(0, 242, 254, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #rhythm-core {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #ff007f;
+            box-shadow: 0 0 10px #ff007f;
+            transition: transform 0.05s ease-out;
+        }
+        .flash-cyan {
+            animation: flash-c 0.1s ease-out;
+        }
+        .flash-pink {
+            animation: flash-p 0.1s ease-out;
+        }
+        @keyframes flash-c {
+            0% { border-color: #00f2fe; box-shadow: 0 0 15px #00f2fe; }
+            100% { border-color: rgba(0, 242, 254, 0.3); }
+        }
+        @keyframes flash-p {
+            0% { background-color: #fff; box-shadow: 0 0 20px #ff007f; transform: scale(1.8); }
+            100% { background-color: #ff007f; box-shadow: 0 0 10px #ff007f; transform: scale(1); }
+        }
+        .instructions {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: #a0a5c0;
+            margin-top: 15px;
+            max-width: 320px;
+        }
+        .highlight {
+            color: #00f2fe;
+            font-weight: bold;
+        }
+        .pink-highlight {
+            color: #ff007f;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <header>
+        <h1>ГЛИЧ-КАССЕТА</h1>
+        <div class="subtitle">ФИДЖИТАЛ РИТМ-РАННЕР</div>
+    </header>
+
+    <div id="canvas-container">
+        <div id="score-board">СЧЕТ: <span id="score-val">0</span></div>
+        <div id="combo-board">КОМБО: x<span id="combo-val">1</span></div>
+        
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-overlay">
+            <h2 id="overlay-title" style="text-shadow: 0 0 10px #00f2fe;">ЗАПУСТИТЬ СИСТЕМУ</h2>
+            <p class="instructions" id="overlay-desc">
+                Помоги <span class="highlight">Глич-Кассете</span> перепрыгивать через препятствия из битых пикселей. <br><br>
+                <span class="pink-highlight">ПРАВИЛО ФИДЖИТАЛА:</span><br>
+                Прыгай точно <span class="highlight">в такт биту</span> (когда пульсирует нижний индикатор), чтобы получать <span class="highlight">двойные очки</span>!
+            </p>
+            <button class="btn" id="start-btn">СТАРТ</button>
+        </div>
+
+        <div id="rhythm-indicator">
+            <div id="rhythm-core"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('start-btn');
+    const uiOverlay = document.getElementById('ui-overlay');
+    const overlayTitle = document.getElementById('overlay-title');
+    const overlayDesc = document.getElementById('overlay-desc');
+    const scoreVal = document.getElementById('score-val');
+    const comboVal = document.getElementById('combo-val');
+    const comboBoard = document.getElementById('combo-board');
+    const rhythmIndicator = document.getElementById('rhythm-indicator');
+    const rhythmCore = document.getElementById('rhythm-core');
+
+    // Настройка размеров экрана
+    function resizeCanvas() {
+        const container = document.getElementById('canvas-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Аудио Синтезатор (Web Audio API - полностью без внешних файлов!)
+    let audioCtx = null;
+    let nextBeatTime = 0;
+    const bpm = 125;
+    const beatInterval = 60 / bpm; // время между битами в сек (примерно 0.48с)
+    let audioLoopId = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        nextBeatTime = audioCtx.currentTime + 0.1;
+        scheduler();
+    }
+
+    // Генерация звука бочки (Kick)
+    function playKick(time) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.frequency.setValueAtTime(150, time);
+        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.12);
+
+        gain.gain.setValueAtTime(1.0, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+
+        osc.start(time);
+        osc.stop(time + 0.16);
+    }
+
+    // Генерация ретро лид-ноты (8-bit Synth)
+    const notes = [130.81, 146.83, 164.81, 196.00, 220.00]; // C3, D3, E3, G3, A3
+    let noteIndex = 0;
+
+    function playSynth(time, step) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle'; // Ретро треугольная волна
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        // Простая мелодическая сетка
+        let freq = notes[noteIndex % notes.length];
+        if (step % 4 === 0) freq *= 1.5; // гармония на сильную долю
+        if (step % 8 === 0) noteIndex = Math.floor(Math.random() * notes.length);
+
+        osc.frequency.setValueAtTime(freq, time);
+        
+        gain.gain.setValueAtTime(0.15, time);
+        gain.gain.linearRampToValueAtTime(0.1, time + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+        osc.start(time);
+        osc.stop(time + 0.22);
+    }
+
+    // Планировщик звуков
+    let stepCount = 0;
+    function scheduler() {
+        while (nextBeatTime < audioCtx.currentTime + 0.1) {
+            playKick(nextBeatTime);
+            playSynth(nextBeatTime, stepCount);
+            
+            // Синхронизируем визуальный триггер бита
+            const scheduleDelay = (nextBeatTime - audioCtx.currentTime) * 1000;
+            setTimeout(triggerBeatVisual, Math.max(0, scheduleDelay));
+
+            nextBeatTime += beatInterval;
+            stepCount++;
+        }
+        audioLoopId = setTimeout(scheduler, 25);
+    }
+
+    // Визуальная пульсация в такт музыки
+    let lastBeatTimeLocal = 0;
+    function triggerBeatVisual() {
+        lastBeatTimeLocal = Date.now();
+        rhythmIndicator.classList.remove('flash-cyan');
+        void rhythmIndicator.offsetWidth; // Магия триггера анимации
+        rhythmIndicator.classList.add('flash-cyan');
+
+        rhythmCore.classList.remove('flash-pink');
+        void rhythmCore.offsetWidth;
+        rhythmCore.classList.add('flash-pink');
+
+        // Эффект пульсации фона при бите
+        bgPulse = 0.15;
+    }
+
+    // СОСТОЯНИЕ ИГРЫ
+    let gameActive = false;
+    let score = 0;
+    let combo = 1;
+    let bgPulse = 0;
+    const gravity = 0.6;
+
+    // Игрок (Глич-Кассета)
+    const player = {
+        x: 80,
+        y: 0,
+        width: 60,
+        height: 40,
+        vy: 0,
+        isJumping: false,
+        angle: 0,
+        targetAngle: 0,
+        reelAngle: 0,
+        glitchOffset: 0
+    };
+
+    // Препятствия (Битые пиксели)
+    let obstacles = [];
+    let obstacleTimer = 0;
+    let obstacleSpeed = 6;
+
+    // Эффекты частиц (для глитча и попадания в бит)
+    let particles = [];
+
+    function spawnParticle(x, y, color, count = 5) {
+        for (let i = 0; i < count; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8,
+                size: Math.random() * 4 + 2,
+                color: color,
+                alpha: 1,
+                decay: Math.random() * 0.05 + 0.02
+            });
+        }
+    }
+
+    // Сброс параметров
+    function resetGame() {
+        score = 0;
+        combo = 1;
+        scoreVal.textContent = score;
+        comboVal.textContent = combo;
+        comboBoard.style.display = 'none';
+        obstacles = [];
+        particles = [];
+        player.y = canvas.height - 120;
+        player.vy = 0;
+        player.isJumping = false;
+        player.angle = 0;
+        player.targetAngle = 0;
+        obstacleSpeed = 6;
+        obstacleTimer = 0;
+    }
+
+    // Прыжок
+    function jump() {
+        if (!gameActive) return;
+
+        if (!player.isJumping) {
+            player.vy = -12;
+            player.isJumping = true;
+            player.targetAngle = Math.PI * 2; // Крутой кувырок в воздухе!
+
+            // Проверка попадания в бит (Ритм-физика!)
+            const now = Date.now();
+            const msSinceLastBeat = now - lastBeatTimeLocal;
+            const msToNextBeat = (beatInterval * 1000) - msSinceLastBeat;
+            const tolerance = 110; // Допустимая погрешность в мс для "Perfect Hit"
+
+            if (msSinceLastBeat <= tolerance || msToNextBeat <= tolerance) {
+                // Попал в бит!
+                combo++;
+                score += 10 * combo;
+                comboBoard.style.display = 'block';
+                comboVal.textContent = combo;
+                
+                // Эффектные искры
+                spawnParticle(player.x + player.width/2, player.y + player.height/2, '#00f2fe', 15);
+                showTextFeedback("ИДЕАЛЬНО В БИТ!", '#00f2fe');
+            } else {
+                // Не попал в бит
+                combo = 1;
+                comboBoard.style.display = 'none';
+                score += 5;
+                spawnParticle(player.x + player.width/2, player.y + player.height/2, '#ff007f', 5);
+                showTextFeedback("НЕ В ТАКТ", '#ff007f');
+            }
+            
+            scoreVal.textContent = score;
+        }
+    }
+
+    // Текстовый фидбек на экране
+    let feedbackText = "";
+    let feedbackColor = "#fff";
+    let feedbackTimer = 0;
+    function showTextFeedback(text, color) {
+        feedbackText = text;
+        feedbackColor = color;
+        feedbackTimer = 30; // кадры
+    }
+
+    // ОБРАБОТЧИКИ КЛИКОВ
+    function triggerJumpInput(e) {
+        e.preventDefault();
+        if (gameActive) {
+            jump();
+        }
+    }
+
+    // Клик на весь холст
+    canvas.addEventListener('touchstart', triggerJumpInput, {passive: false});
+    canvas.addEventListener('mousedown', triggerJumpInput);
+
+    // Клавиша Пробел
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            jump();
+        }
+    });
+
+    startBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        initAudio();
+        resetGame();
+        uiOverlay.style.opacity = '0';
+        setTimeout(() => {
+            uiOverlay.style.pointerEvents = 'none';
+        }, 300);
+        gameActive = true;
+    });
+
+    // Отрисовка Глич-Кассеты
+    function drawPlayer() {
+        ctx.save();
+        ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+        
+        // Вращение при прыжке
+        if (player.angle < player.targetAngle) {
+            player.angle += 0.2;
+            if (player.angle >= player.targetAngle) {
+                player.angle = 0;
+                player.targetAngle = 0;
+            }
+        }
+        ctx.rotate(player.angle);
+
+        // Эффект случайного смещения (глитча)
+        let xOff = 0;
+        let yOff = 0;
+        if (Math.random() < 0.08) {
+            xOff = (Math.random() - 0.5) * 6;
+            yOff = (Math.random() - 0.5) * 4;
+        }
+
+        // Корпус кассеты
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "#ff007f";
+        ctx.fillStyle = "#0d0e15";
+        ctx.strokeStyle = "#ff007f";
+        ctx.lineWidth = 3;
+        
+        // Рисуем скругленный прямоугольник кассеты
+        ctx.beginPath();
+        ctx.roundRect(-player.width/2 + xOff, -player.height/2 + yOff, player.width, player.height, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        // Внутренний стикер (фиолетовый неон)
+        ctx.fillStyle = "#1b1c2b";
+        ctx.strokeStyle = "#00f2fe";
+        ctx.shadowColor = "#00f2fe";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(-player.width/2 + 8 + xOff, -player.height/2 + 6 + yOff, player.width - 16, player.height - 18, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // Катушки пленки (крутятся со временем!)
+        player.reelAngle += 0.05;
+        const rSize = 10;
+        
+        // Левая катушка
+        ctx.save();
+        ctx.translate(-12 + xOff, 2 + yOff);
+        ctx.rotate(player.reelAngle);
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(0, 0, rSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#0d0e15";
+        ctx.beginPath();
+        ctx.arc(0, 0, rSize - 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Зубчики катушки
+        ctx.fillStyle = "#ff007f";
+        for (let i = 0; i < 6; i++) {
+            ctx.rotate(Math.PI / 3);
+            ctx.fillRect(-2, -rSize, 4, 3);
+        }
+        ctx.restore();
+
+        // Правая катушка
+        ctx.save();
+        ctx.translate(12 + xOff, 2 + yOff);
+        ctx.rotate(player.reelAngle);
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(0, 0, rSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#0d0e15";
+        ctx.beginPath();
+        ctx.arc(0, 0, rSize - 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Зубчики
+        ctx.fillStyle = "#ff007f";
+        for (let i = 0; i < 6; i++) {
+            ctx.rotate(Math.PI / 3);
+            ctx.fillRect(-2, -rSize, 4, 3);
+        }
+        ctx.restore();
+
+        // Розовый хвостик вырванной пленки внизу (неоновый шлейф)
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#ff007f";
+        ctx.strokeStyle = "#ff007f";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-15, player.height/2 - 4);
+        ctx.bezierCurveTo(-5, player.height/2 + 8, 5, player.height/2 + 8, 15, player.height/2 - 4);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    // Игровой цикл
+    function update() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Рисуем неоновую сетку на заднем плане (Движение)
+        ctx.strokeStyle = "rgba(0, 242, 254, 0.08)";
+        ctx.lineWidth = 1;
+        const gridGap = 40;
+        const speedOffset = (Date.now() / 20) % gridGap;
+        
+        // Горизонтальные линии
+        for (let y = 0; y < canvas.height; y += gridGap) {
+            ctx.beginPath();
+            ctx.moveTo(0, y + (speedOffset * 0.3));
+            ctx.lineTo(canvas.width, y + (speedOffset * 0.3));
+            ctx.stroke();
+        }
+        // Вертикальные линии
+        for (let x = 0; x < canvas.width; x += gridGap) {
+            ctx.beginPath();
+            ctx.moveTo(x - (speedOffset * 0.5), 0);
+            ctx.lineTo(x - (speedOffset * 0.5), canvas.height);
+            ctx.stroke();
+        }
+
+        // Рисуем пол (Линия горизонта)
+        const groundY = canvas.height - 80;
+        ctx.strokeStyle = "#00f2fe";
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "#00f2fe";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(0, groundY);
+        ctx.lineTo(canvas.width, groundY);
+        ctx.stroke();
+
+        // Фоновый импульс от бита
+        if (bgPulse > 0) {
+            ctx.fillStyle = `rgba(255, 0, 127, ${bgPulse})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            bgPulse -= 0.01;
+        }
+
+        if (gameActive) {
+            // ФИЗИКА ИГРОКА
+            player.vy += gravity;
+            player.y += player.vy;
+
+            // Касание земли
+            if (player.y >= groundY - player.height) {
+                player.y = groundY - player.height;
+                player.vy = 0;
+                player.isJumping = false;
+            }
+
+            // ГЕНЕРАЦИЯ ПРЕПЯТСТВИЙ (по времени, коррелирует с тактом)
+            obstacleTimer++;
+            // Спавним препятствие примерно каждые 2 или 3 секунды
+            const spawnRate = Math.floor(beatInterval * 60 * 2.5); // привязано к BPM
+            if (obstacleTimer >= spawnRate) {
+                obstacleTimer = 0;
+                obstacles.push({
+                    x: canvas.width + 50,
+                    y: groundY - 35,
+                    width: 25 + Math.random() * 20,
+                    height: 35,
+                    glitched: Math.random() < 0.4
+                });
+            }
+
+            // ДВИЖЕНИЕ ПРЕПЯТСТВИЙ
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.x -= obstacleSpeed;
+
+                // Отрисовка "Битого Пикселя"
+                ctx.save();
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = "#ff007f";
+                ctx.fillStyle = "#ff007f";
+                
+                if (obs.glitched && Math.random() < 0.3) {
+                    // Эффект визуального распада препятствия
+                    ctx.fillStyle = "#00f2fe";
+                    ctx.shadowColor = "#00f2fe";
+                    ctx.fillRect(obs.x + (Math.random()-0.5)*10, obs.y, obs.width, obs.height);
+                } else {
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                    // Пиксельная текстура внутри препятствия
+                    ctx.fillStyle = "#fff";
+                    ctx.fillRect(obs.x + 4, obs.y + 4, 6, 6);
+                }
+                ctx.restore();
+
+                // КОЛЛИЗИИ (Столкновения)
+                if (
+                    player.x < obs.x + obs.width &&
+                    player.x + player.width > obs.x &&
+                    player.y < obs.y + obs.height &&
+                    player.y + player.height > obs.y
+                ) {
+                    // Столкновение! Конец игры
+                    gameOver();
+                }
+
+                // Удаление прошедших препятствий
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Увеличение сложности со временем
+            obstacleSpeed += 0.0005;
+
+            // ОБНОВЛЕНИЕ ЧАСТИЦ
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+                ctx.restore();
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        // Отрисовка игрока
+        drawPlayer();
+
+        // Отрисовка текстового фидбека в такт
+        if (feedbackTimer > 0) {
+            ctx.save();
+            ctx.font = "italic bold 18px 'Courier New'";
+            ctx.fillStyle = feedbackColor;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = feedbackColor;
+            ctx.textAlign = "center";
+            ctx.fillText(feedbackText, canvas.width / 2, canvas.height / 2 - 50);
+            ctx.restore();
+            feedbackTimer--;
+        }
+
+        requestAnimationFrame(update);
+    }
+
+    function gameOver() {
+        gameActive = false;
+        
+        // Остановка аудио планировщика
+        if (audioLoopId) clearTimeout(audioLoopId);
+        
+        // Эпичный взрыв кассеты!
+        spawnParticle(player.x + player.width/2, player.y + player.height/2, '#ff007f', 40);
+        spawnParticle(player.x + player.width/2, player.y + player.height/2, '#00f2fe', 40);
+
+        // Показ экрана поражения
+        setTimeout(() => {
+            overlayTitle.textContent = "СИСТЕМА СБОИЛА";
+            overlayTitle.style.textShadow = "0 0 10px #ff007f";
+            overlayDesc.innerHTML = `
+                Глич-Кассета натолкнулась на битый пиксель.<br><br>
+                Твой итоговый фиджитал-счет: <span class="highlight">${score}</span> очков!<br>
+                Уровень ритм-синхронизации: <span class="highlight">${Math.min(100, combo * 10)}%</span>
+            `;
+            startBtn.textContent = "ПЕРЕЗАГРУЗКА";
+            uiOverlay.style.pointerEvents = 'auto';
+            uiOverlay.style.opacity = '1';
+        }, 1000);
+    }
+
+    // Запуск цикла анимации
+    update();
+</script>
+
+</body>
+</html>
